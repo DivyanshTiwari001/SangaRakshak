@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import { Home,UserPage } from './customComponents/index.js'
+import { Home,UserEntryPage,UserExitPage } from './customComponents/index.js'
 
 
 const router = createBrowserRouter(
@@ -16,8 +16,11 @@ const router = createBrowserRouter(
           path:"",
           element:<Home/>
         },{
-          path:"user-page",
-          element:<UserPage/>
+          path:"user-entry-page",
+          element:<UserEntryPage/>
+        },{
+          path:"user-exit-page",
+          element:<UserExitPage/>
         }
       ]
     }
@@ -25,7 +28,5 @@ const router = createBrowserRouter(
 )
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <RouterProvider router={router}/>
-  </StrictMode>,
 )

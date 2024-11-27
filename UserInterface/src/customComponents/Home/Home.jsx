@@ -8,7 +8,7 @@ function Home() {
   const {module,setModule} = useContext(CustomerContext)
   const navigate = useNavigate()
   useEffect(()=>{
-    if(module!="")navigate('/user-page')
+    if(module!="")navigate('/user-entry-page')
   },[module])
   return (
     !module && <div className='w-screen flex-col h-screen flex font-serif bg-blue-500 items-center'>

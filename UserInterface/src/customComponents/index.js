@@ -1,6 +1,8 @@
 import Home from "./Home/Home";
-import UserPage from "./UserPage/UserPage";
+import UserEntryPage from "./UserEntryPage/UserEntryPage";
+import UserExitPage from "./UserExitPage/UserExitPage";
 export{
     Home,
-    UserPage,
+    UserEntryPage,
+    UserExitPage
 }

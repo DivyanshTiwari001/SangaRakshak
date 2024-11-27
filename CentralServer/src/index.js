@@ -18,7 +18,7 @@ const server = http.createServer(app)
 const io = new Server(server,
     {
         cors: {
-            origin: process.env.CORS_ORIGIN,
+            origin:  [process.env.CORS_ORIGIN_CLIENT,process.env.CORS_ORIGIN_CUSTOMER],
             methods: ['GET', 'POST', 'PUT', 'DELETE']
         }
     }
@@ -27,7 +27,6 @@ const io = new Server(server,
 // extracting user_id from request
 io.use((socket,next)=>{
     const userId = socket.handshake.query._id
-
     if(!userId){
         return next(new ApiError(400,"Bad request"))
     }
