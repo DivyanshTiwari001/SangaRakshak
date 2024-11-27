@@ -165,8 +165,8 @@ def compute_similarity(img1_path, img2_path):
     return similarity_percentage
 
 # # Example usage: provide two image file paths
-# img1_path = 'ajit3.jpeg'  # Path to the first image
-# img2_path = 'rishu.jpeg'  # Path to the second image
+# img1_path = './resources/objectImage.jpeg'  # Path to the first image
+# img2_path = './resources/userImage.jpeg'  # Path to the second image
 
 # similarity_score = compute_similarity(img1_path, img2_path)
 # print(f"Similarity between the images: {similarity_score:.2f}%")

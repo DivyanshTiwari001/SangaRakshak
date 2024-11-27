@@ -1,9 +1,12 @@
 from flask import Flask, request, jsonify
 import os
+from flask_cors import CORS  
 from werkzeug.utils import secure_filename
-from util import compute_similarity 
+from util import compute_similarity
 
 app = Flask(__name__)
+CORS(app)  
+
 UPLOAD_FOLDER = 'resources'  # Folder where uploaded images will be stored
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -11,39 +14,61 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Endpoint to get similarity between two images
+# Endpoint to get similarity scores for one or two pairs of images
 @app.route('/api/v1/customer/get-similarity', methods=['POST'])
 def get_similarity():
-    # Ensure the request contains files
-    if 'image1' not in request.files or 'image2' not in request.files:
-        return jsonify({"error": "Both images are required"}), 400
-
-    # Get the uploaded images
-    image1 = request.files['image1']
-    image2 = request.files['image2']
-
-    # Save images to the resources folder
-    image1_filename = secure_filename(image1.filename)
-    image1_path = os.path.join(app.config['UPLOAD_FOLDER'], image1_filename)
-    image1.save(image1_path)
-
-    image2_filename = secure_filename(image2.filename)
-    image2_path = os.path.join(app.config['UPLOAD_FOLDER'], image2_filename)
-    image2.save(image2_path)
-
-    # Call the function from util.py to get similarity
-    similarity_score = compute_similarity(image1_path, image2_path)
-
-    # Delete the images after processing
     try:
-        os.remove(image1_path)
-        os.remove(image2_path)
-    except Exception as e:
-        print(f"Error deleting images: {e}")
+        # Save received files
+        file_paths = {}
+        required_files = ['image1', 'image2']
+        optional_files = ['image3', 'image4']
 
-    return jsonify({"similarity_score": similarity_score})
+        # Check for required files
+        for file_key in required_files:
+            if file_key not in request.files:
+                return jsonify({"error": f"{file_key} is required"}), 400
+
+            # Save required files
+            uploaded_file = request.files[file_key]
+            filename = secure_filename(uploaded_file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            uploaded_file.save(file_path)
+            file_paths[file_key] = file_path
+
+        # Check for optional files
+        for file_key in optional_files:
+            if file_key in request.files:
+                uploaded_file = request.files[file_key]
+                filename = secure_filename(uploaded_file.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                uploaded_file.save(file_path)
+                file_paths[file_key] = file_path
+
+        # Compute similarity scores
+        response = {}
+        response['custScore'] = compute_similarity(file_paths['image1'], file_paths['image2'])
+
+        if 'image3' in file_paths and 'image4' in file_paths:
+            response['objectScore'] = compute_similarity(file_paths['image3'], file_paths['image4'])
+
+        # Delete all images after processing
+        for file_path in file_paths.values():
+            os.remove(file_path)
+
+        return jsonify(response)
+
+    except Exception as e:
+        # Clean up resources on failure
+        for file_path in file_paths.values():
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        # Log error and respond with an error message
+        print(f"Error processing images: {e}")
+        return jsonify({"error": "An error occurred while processing the images"}), 500
+
 
 if __name__ == '__main__':
-    port=8080
+    port = 8080
     print(f"Server running at {port}")
     app.run(debug=True, port=port)

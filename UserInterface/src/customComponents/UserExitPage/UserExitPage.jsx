@@ -2,8 +2,8 @@ import React, { useRef,useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CustomerContext } from '../../context/CustomerContext'
 import Webcam from 'react-webcam'
-import QRCode from 'react-qr-code';
-import { makeCustomerEntry } from '../../utils/customer';
+// import QRCode from 'react-qr-code';
+import { makeCustomerExit } from '../../utils/customer';
 
 function UserExitPage() {
   const webcamRef = useRef(null);
@@ -33,7 +33,7 @@ function UserExitPage() {
       setReqStatus(prev=>false)
       if(objectImage==null)alert("Are you sure, you're not carrying anything?")
 
-      const res = await makeCustomerExit(userImage,objectImage)
+      const res = await makeCustomerExit(userImage,customerId,objectImage)
     
     }
     setStatus(prev=>false)
