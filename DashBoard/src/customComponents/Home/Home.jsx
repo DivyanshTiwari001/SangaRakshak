@@ -14,7 +14,7 @@ function Home() {
             exitObjectPhoto:"https://i5.walmartimages.com/asr/76526810-91da-4917-87c1-69245968fdc7_2.f1f4cd6ed762d85ca8fcb08508c10147.jpeg",
             custMatch:80,
             objectMatch:48,
-            reason:""
+            reason:''
         }
     ) 
     const navigate = useNavigate()
@@ -31,12 +31,18 @@ function Home() {
     }
 
     useEffect(()=>{
+        console.log("Hello")
+    },[customer])
+    useEffect(()=>{
         if(!user)navigate('/login')
     },[user])
 
     useEffect(()=>{
         const handleEvent = async(res)=>{
-            setCustomer(prev=>res.data)
+            setCustomer(prev=>{
+                console.log("updating")
+                return Object.assign({},res.data);
+        })
         }
         socket?.on("suspicious",handleEvent)
         socket?.on("reason",handleEvent)
@@ -80,11 +86,11 @@ function Home() {
             <div className='w-full flex flex-row'>
                 {/* person matched percentage */}
                 <div className='w-1/2 flex flex-row justify-center'>
-                    <h3 className='font-bold font-serif text-2xl'>Matched : <span className={(customer?.custMatch<50)?'text-red-600':'text-green-600'}>{customer?.custMatch}%</span></h3>
+                    <h3 className='font-bold font-serif text-2xl'>Matched : <span className={(customer?.custMatch<50)?'text-red-600':'text-green-600'}>{customer?.custMatch.toFixed(2)}%</span></h3>
                 </div>
                 {/* object matched percentage */}
                 <div className='w-1/2 flex flex-row justify-center'>
-                    <h3 className='font-bold font-serif text-2xl'>Matched : <span className={(customer?.objectMatch<50)?'text-red-600':'text-green-600'}>{customer?.objectMatch}%</span></h3>
+                    <h3 className='font-bold font-serif text-2xl'>Matched : <span className={(customer?.objectMatch<50)?'text-red-600':'text-green-600'}>{customer?.objectMatch.toFixed(2)}%</span></h3>
                 </div>
             </div>
             <div className='w-full  flex flex-col gap-10'>
@@ -95,7 +101,7 @@ function Home() {
                 </div>
                 {
                     customer.reason && <div className='w-full flex flex-row justify-center'>
-                        <audio controls>
+                        <audio controls key={customer.reason}>
                             <source src={customer.reason}/>
                         </audio>
                     </div>

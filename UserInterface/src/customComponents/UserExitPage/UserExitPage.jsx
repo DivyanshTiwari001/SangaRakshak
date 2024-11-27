@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { CustomerContext } from '../../context/CustomerContext'
 import Webcam from 'react-webcam'
 // import QRCode from 'react-qr-code';
-import { makeCustomerExit } from '../../utils/customer';
+import { makeCustomerExit,submitReason } from '../../utils/customer';
+import RecordRTC from 'recordrtc';
 
 function UserExitPage() {
   const webcamRef = useRef(null);
-  const {module,socket} = useContext(CustomerContext)
+  const {module,socket,setModule} = useContext(CustomerContext)
   const [status,setStatus] = useState(false)
   const [userImage,setUserImage] = useState(null)
   const [objectImage,setObjectImage] = useState(null)
@@ -15,12 +16,44 @@ function UserExitPage() {
   const [customerId,setCustomerId] = useState(null)
   const [customerIdConfirmed,setCustomerIdConfirmed] = useState(false)
   const [reqStatus,setReqStatus] = useState(true)
+  const [userStatus,setUserStatus] = useState(null)
   const navigate = useNavigate()
+  const [isRecording, setIsRecording] = useState(false);  // Tracks if recording is in progress
+  const [audioBlob, setAudioBlob] = useState(null); // Stores the audio blob for further processing
+  const [recorder, setRecorder] = useState(null); // Initialize the recorder with a bit rate
+  const [audioUrl, setAudioUrl] = useState('');
+  // Start recording
+  const startRecording = () => {
+    setIsRecording(prev=>true)
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const audioRecorder = new RecordRTC(stream, { type: 'audio' });
+      audioRecorder.startRecording();
+      setRecorder(prev=>audioRecorder);
+    });
+  };
+  // Stop recording
+  const stopRecording = () => {
+    recorder.stopRecording(() => {
+      const audioBlob = recorder.getBlob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setAudioBlob(prev=>audioBlob)
+      setAudioUrl(prev=>audioUrl);
+      setIsRecording(prev=>false)
+    });
+  };
+
+  // submitting the reason
+  const handleReasonSubmit = async()=>{
+    await submitReason(customerId,audioBlob)
+  }
 
   const handlePrev = async()=>{
     setObjectMode(prev=>false)
   }
 
+  const handleFinish = async()=>{
+    setModule(prev=>"")
+  }
   const handleNext = async()=>{
     if(!reqStatus)return
     if(objectMode==false){
@@ -34,7 +67,8 @@ function UserExitPage() {
       if(objectImage==null)alert("Are you sure, you're not carrying anything?")
 
       const res = await makeCustomerExit(userImage,customerId,objectImage)
-    
+      if(res.statusCode==200)setUserStatus(prev=>"accepted")
+
     }
     setStatus(prev=>false)
   }
@@ -59,9 +93,26 @@ function UserExitPage() {
 
   useEffect(()=>{
     if(module === "")navigate("/")
+    socket.on("accepted",()=>{
+      setUserStatus(prev=>"accepted")
+    })
+    socket.on("rejected",()=>{
+      setUserStatus(prev=>"rejected")
+    })
+    socket.on("give-reason",()=>{
+      setUserStatus(prev=>"pending")
+    })
+
+    return ()=>{
+      socket?.off("accepted")
+      socket?.off("rejected")
+      socket?.off("give-reason")
+  }
+
+    
   },[module])
   return (
-    module && (customerIdConfirmed ?  <div className='w-screen flex-col h-screen flex font-serif bg-blue-500 items-center'>
+   !userStatus ? module && (customerIdConfirmed ?  <div className='w-screen flex-col h-screen flex font-serif bg-blue-500 items-center'>
         <div className='w-full flex flex-row justify-center mt-10 font-extrabold'>
           <h1 className='text-3xl text-white font-serif '>{objectMode?"Capture object You are Carrying" : "Please Capture Your Image"}</h1>
         </div>
@@ -119,6 +170,45 @@ function UserExitPage() {
                 </div>
             </div>
         </div>
+    </div>
+    )
+    :
+    (
+      <div className='w-screen flex-col h-screen flex font-serif bg-blue-500 items-center'>
+         <div className='w-full flex flex-row justify-center mt-10 font-extrabold'>
+          <h1 className='text-3xl text-white font-serif '>{userStatus==='accepted'?"ThankYou For Visiting": (userStatus==='rejected' ? "Please Wait Here" : "Please Provide Reason for Object Mismatch")}</h1>
+        </div>
+        {
+          userStatus!=='pending' ? <div className='w-screen flex flex-col items-center mt-5'>
+          <div className='justify-self-center w-[800px] h-[500px] bg-white flex flex-col justify-center items-center  rounded-md shadow-md ml-5'>
+              <div className='w-[400px] shadow-md rounded-md'>
+                  {userStatus==='accepted' ? <h1 className='w-full h-[60px] border-3 border-black rounded-md text-2xl text-green-400 font-serif font-extrabold text-center'> Your Identity Verified Successfully </h1>
+                  :
+                  <h1 className='w-full h-[60px] border-3 border-black rounded-md text-2xl text-red-500 font-serif font-extrabold text-center'> Suspicion Detected!!<br/>Please Wait For Authorities </h1>
+                  }
+              </div>
+              <div className='w-full flex flex-row justify-center gap-5 mt-10'>
+                 <button className="w-[180px] h-[40px] bg-blue-500 hover:bg-blue-400 text-xl font-serif font-bold text-white rounded-md shadow-md"
+                  onClick={handleFinish}>Finish</button>
+              </div>
+          </div>
+      </div> 
+      : 
+      <div className='w-screen flex flex-col items-center mt-5'>
+          <div className='justify-self-center w-[800px] h-[500px] bg-white flex flex-col justify-center items-center  rounded-md shadow-md ml-5'>
+                {audioUrl && <audio controls src={audioUrl}></audio>}
+              <div className='w-full flex flex-row justify-center gap-5 mt-10'>
+                 <button className="w-[180px] h-[40px] bg-blue-500 hover:bg-blue-400 text-xl font-serif font-bold text-white rounded-md shadow-md"
+                  onClick={startRecording} disabled={isRecording}>Start Recording</button>
+                 <button className="w-[180px] h-[40px] bg-blue-500 hover:bg-blue-400 text-xl font-serif font-bold text-white rounded-md shadow-md"
+                  onClick={stopRecording} disabled={!isRecording}>Stop Recording</button>
+                 <button className="w-[180px] h-[40px] bg-blue-500 hover:bg-blue-400 text-xl font-serif font-bold text-white rounded-md shadow-md"
+                  onClick={handleReasonSubmit} disabled={isRecording}>Submit</button>
+
+              </div>
+          </div>
+      </div> 
+        }
     </div>
     )
   )

@@ -67,7 +67,7 @@ const makeCustomerExit = async(userImage,customerId,objectImage)=>{
             }
             const url2 = baseUrl + '/customer-exit'
             const serv_res = await axios.post(url2,formData2)
-            console.log(serv_res)
+            return serv_res.data;
        }catch(err){
         console.log(err)
        }
@@ -75,7 +75,21 @@ const makeCustomerExit = async(userImage,customerId,objectImage)=>{
 
 }
 
+const submitReason = async(customerId,audio)=>{
+    const url = baseUrl + '/submit-reason'
+    try{
+        const formData = new FormData()
+        formData.append('reason',audio, 'recorded-audio.mp3')
+        formData.append('customerId',customerId)
+        await axios.post(url,formData)
+        console.log("callmade")
+    }catch(err){
+        console.log(err)
+    }
+}
+
 export{
     makeCustomerEntry,
-    makeCustomerExit
+    makeCustomerExit,
+    submitReason
 }
