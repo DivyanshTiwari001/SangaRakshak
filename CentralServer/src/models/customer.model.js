@@ -26,11 +26,31 @@ const customerSchema = new mongoose.Schema(
             type:String
         },
 
+        entryXrayPhoto:{
+            type:String
+        },
+
+        exitXrayPhoto:{
+            type:String
+        },
+
+        entryWeight:{
+            type:Number,
+        },
+
+        exitWeight:{
+            type:Number
+        },
+
         custMatch:{
             type:Number
         },
         
         objectMatch:{
+            type:Number
+        },
+
+        xrayMatch:{
             type:Number
         },
 

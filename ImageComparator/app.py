@@ -3,6 +3,7 @@ import os
 from flask_cors import CORS  
 from werkzeug.utils import secure_filename
 from util import compute_similarity
+from xray_util import calculate_xray_similarity
 
 app = Flask(__name__)
 CORS(app)  
@@ -22,6 +23,7 @@ def get_similarity():
         file_paths = {}
         required_files = ['image1', 'image2']
         optional_files = ['image3', 'image4']
+        x_ray_files = ['xray1', 'xray2']
 
         # Check for required files
         for file_key in required_files:
@@ -44,12 +46,30 @@ def get_similarity():
                 uploaded_file.save(file_path)
                 file_paths[file_key] = file_path
 
+        # Check for x_ray files
+        for file_key in x_ray_files:
+            if file_key in request.files:
+                uploaded_file = request.files[file_key]
+                filename = secure_filename(uploaded_file.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                uploaded_file.save(file_path)
+                file_paths[file_key] = file_path
+
         # Compute similarity scores
         response = {}
+        print("Bug 0")
+
         response['custScore'] = compute_similarity(file_paths['image1'], file_paths['image2'])
+
+        print("Bug 1")
 
         if 'image3' in file_paths and 'image4' in file_paths:
             response['objectScore'] = compute_similarity(file_paths['image3'], file_paths['image4'])
+
+        print("Bug 2")
+
+        if 'xray1' in file_paths and 'xray2' in file_paths:
+            response['xrayScore'] = calculate_xray_similarity(file_paths['xray1'], file_paths['xray2'])
 
         # Delete all images after processing
         for file_path in file_paths.values():

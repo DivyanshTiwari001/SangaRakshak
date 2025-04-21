@@ -10,13 +10,14 @@ import globalSocket from "../index.js";
 
 
 const customerEntryController = asyncHandler(async(req,res)=>{
-    const {orgId} = req.body
+    const {orgId,objectWeight} = req.body
     if(!orgId || !isValidObjectId(orgId)){
         throw new ApiError(400,"required organization details")
     }
 
     const custPhotoLocalPath = req.files?.customerPhoto[0]?.path 
     const objectPhotoLocalPath = req.files?.objectPhoto[0].path
+    const xrayPhotoLocalPath = req.files?.xrayPhoto[0].path
 
     if(!custPhotoLocalPath){
         throw new ApiError(400,"customer image required")
@@ -24,6 +25,7 @@ const customerEntryController = asyncHandler(async(req,res)=>{
 
     const entryCustPhoto = await uploadOnCloudinary(custPhotoLocalPath)
     const entryObjectPhoto = await uploadOnCloudinary(objectPhotoLocalPath)
+    const entryXrayPhoto = await uploadOnCloudinary(xrayPhotoLocalPath)
 
     if(!entryCustPhoto){
         throw new ApiError(500,"something went wrong")
@@ -32,8 +34,10 @@ const customerEntryController = asyncHandler(async(req,res)=>{
     const customer = await Customer.create(
         {
             orgId,
+            entryWeight:objectWeight || 0,
             entryCustPhoto:entryCustPhoto.url,
-            entryObjectPhoto:entryObjectPhoto?.url || ""
+            entryObjectPhoto:entryObjectPhoto?.url || "",
+            entryXrayPhoto: entryXrayPhoto?.url || ""
         }
     )
 
@@ -47,7 +51,7 @@ const customerEntryController = asyncHandler(async(req,res)=>{
 })
 
 const customerExitController = asyncHandler(async(req,res)=>{
-    const {customerId,custMatch,objectMatch} = req.body
+    const {customerId,custMatch,objectMatch,xrayMatch,objectWeight} = req.body
 
     if(!customerId || !custMatch || !objectMatch || !isValidObjectId(customerId)){
         throw new ApiError(400,"customer details required")
@@ -55,6 +59,7 @@ const customerExitController = asyncHandler(async(req,res)=>{
 
     const exitCustPhotoLocalPath = req.files?.customerPhoto?.[0].path
     const exitObjectPhotoLocalPath = req.files?.objectPhoto?.[0].path
+    const exitXrayPhotoLocalPath = req.files?.xrayPhoto?.[0].path
 
     if(!exitCustPhotoLocalPath){
         throw new ApiError(400,"customer image required")
@@ -62,15 +67,19 @@ const customerExitController = asyncHandler(async(req,res)=>{
 
     const exitCustPhoto = await uploadOnCloudinary(exitCustPhotoLocalPath)
     const exitObjectPhoto = await uploadOnCloudinary(exitObjectPhotoLocalPath)
+    const exitXrayPhoto = await uploadOnCloudinary(exitXrayPhotoLocalPath)
 
     const customer = await Customer.findById(customerId)
     
     customer.exitCustPhoto = exitCustPhoto.url
     customer.exitObjectPhoto = exitObjectPhoto?.url || ""
+    customer.exitXrayPhoto = exitXrayPhoto?.url || ""
     customer.custMatch = custMatch
     customer.objectMatch = objectMatch
+    customer.xrayMatch = xrayMatch
+    customer.exitWeight = objectWeight || 0
 
-    if(customer.custMatch < 60 || customer.objectMatch < 60){
+    if(customer.custMatch < 60 || customer.objectMatch < 60 || customer.xrayMatch < 60 || customer.entryWeight!== customer.exitWeight){
         customer.suspicious = true
         await customer.save()
         globalSocket.to(users[customer.orgId]).emit("suspicious",new ApiResponse(200,customer,"suspicion detected"))
